@@ -4,6 +4,7 @@ package com.example.boundservice12102022;
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -20,10 +21,18 @@ public class MyService extends Service {
 
     Notification notification;
     boolean isRunning = false;
+    MyThread myThread;
+    OnListenerService onListenerService;
+    class MyBinder extends Binder {
+        MyService getService() {
+            return MyService.this;
+        }
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return new MyBinder();
     }
 
     @Override
@@ -37,16 +46,26 @@ public class MyService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!isRunning) {
             isRunning = true;
-             new MyThread(new Handler(Looper.getMainLooper(), new Handler.Callback() {
+            myThread = new MyThread(new Handler(Looper.getMainLooper(), new Handler.Callback() {
                 @Override
                 public boolean handleMessage(@NonNull Message message) {
                     notification = createNotification("Count " + message.obj);
                     MyApplication.notificationManager.notify(1, notification);
+                    if (onListenerService != null) {
+                        onListenerService.onCount((Integer) message.obj);
+                    }
                     return true;
                 }
-            })).start();
+            }));
+            myThread.start();
         }
         return START_NOT_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        myThread.stopThread();
     }
 
     private Notification createNotification(String text) {
@@ -56,5 +75,13 @@ public class MyService extends Service {
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .build();
+    }
+
+    public void setOnListenerService(OnListenerService onListenerService) {
+        this.onListenerService = onListenerService;
+    }
+
+    interface OnListenerService {
+        void onCount(int count);
     }
 }

@@ -12,7 +12,7 @@ public class MyThread extends Thread {
     private Handler handler;
     private int count = 1;
     private Message message;
-
+    private boolean isRunning = true;
     public MyThread(Handler handler) {
         this.handler = handler;
     }
@@ -20,15 +20,19 @@ public class MyThread extends Thread {
     @Override
     public void run() {
         super.run();
-        while (true) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        while (isRunning) {
             message = new Message();
             message.obj = count++;
             handler.sendMessage(message);
+            try {
+                sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
+    }
+
+    public void stopThread() {
+        this.isRunning = false;
     }
 }
